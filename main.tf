@@ -22,7 +22,7 @@ provider "azurerm" {
 
 module "backend" {
     source = "github.com/implodingduck/tfmodules//tfbackend"
-    name = "mydemobackend"
+    name = "azure-tf-demo"
     location = "East US"
 }
 
