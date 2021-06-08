@@ -1,0 +1,114 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+- group: terraform-backend-kv
+
+stages:
+  - stage: plan
+    jobs:
+    - job: terraform_plan
+      steps:
+      - script: terraform --version
+        displayName: 'check terraform version'
+      - task: AzureCLI@2
+        displayName: "Terraform Init"
+        inputs:
+          azureSubscription: ARM_SUBSCRIPTION
+          scriptType: bash
+          addSpnToEnvironment: true
+          scriptLocation: inlineScript
+          inlineScript: |
+            echo "starting..."
+            export ARM_CLIENT_ID=$servicePrincipalId
+            export ARM_CLIENT_SECRET=$servicePrincipalKey
+            export ARM_TENANT_ID=$tenantId
+            ./env_setup.sh
+            echo $TF_VAR_container_name
+            terraform init --backend-config=backend.tfvars
+        env:
+          TF_VAR_subscription_id: $(subscription-id)
+          TF_VAR_storage_account_name: $(storage-account-name)
+          TF_VAR_resource_group_name: $(resource-group-name)
+          TF_VAR_key: azure-tf-backends.tfstate
+          TF_VAR_container_name: $(container-name)
+      - task: AzureCLI@2
+        displayName: "Terraform Plan"
+        inputs:
+          azureSubscription: ARM_SUBSCRIPTION
+          scriptType: bash
+          addSpnToEnvironment: true
+          scriptLocation: inlineScript
+          inlineScript: |
+            echo "starting..."
+            export ARM_CLIENT_ID=$servicePrincipalId
+            export ARM_CLIENT_SECRET=$servicePrincipalKey
+            export ARM_TENANT_ID=$tenantId
+            terraform plan -out theplan
+        env:
+          TF_VAR_subscription_id: $(subscription-id)
+          TF_VAR_storage_account_name: $(storage-account-name)
+          TF_VAR_resource_group_name: $(resource-group-name)
+          TF_VAR_key: azure-tf-backends.tfstate
+          TF_VAR_container_name: $(container-name)
+          TF_VAR_location: East US
+      - publish: $(System.DefaultWorkingDirectory)/theplan
+        artifact: theplan
+  - stage: apply
+    jobs:
+    - deployment: terraform_apply
+      environment: sandbox
+      strategy:
+       runOnce:
+         deploy:
+          steps:
+          - checkout: self
+          - download: current
+            artifact: theplan
+          - task: FuncToolsInstaller@0
+            displayName: "Install Function Tool"
+          - task: AzureCLI@2
+            displayName: "Terraform Init"
+            inputs:
+              azureSubscription: ARM_SUBSCRIPTION
+              scriptType: bash
+              addSpnToEnvironment: true
+              scriptLocation: inlineScript
+              inlineScript: |
+                echo "starting..."
+                export ARM_CLIENT_ID=$servicePrincipalId
+                export ARM_CLIENT_SECRET=$servicePrincipalKey
+                export ARM_TENANT_ID=$tenantId
+                ./env_setup.sh
+                echo $TF_VAR_container_name
+                terraform init --backend-config=backend.tfvars
+            env:
+              TF_VAR_subscription_id: $(subscription-id)
+              TF_VAR_storage_account_name: $(storage-account-name)
+              TF_VAR_resource_group_name: $(resource-group-name)
+              TF_VAR_key: azure-tf-backends.tfstate
+              TF_VAR_container_name: $(container-name)
+          - task: AzureCLI@2
+            displayName: "Terraform Apply"
+            inputs:
+              azureSubscription: ARM_SUBSCRIPTION
+              scriptType: bash
+              addSpnToEnvironment: true
+              scriptLocation: inlineScript
+              inlineScript: |
+                echo "starting..."
+                export ARM_CLIENT_ID=$servicePrincipalId
+                export ARM_CLIENT_SECRET=$servicePrincipalKey
+                export ARM_TENANT_ID=$tenantId
+                mv DetermineActiveSite/local.settings.json.sample DetermineActiveSite/local.settings.json 
+                terraform apply -auto-approve  $(Pipeline.Workspace)/theplan/theplan
+            env:
+              TF_VAR_subscription_id: $(subscription-id)
+              TF_VAR_storage_account_name: $(storage-account-name)
+              TF_VAR_resource_group_name: $(resource-group-name)
+              TF_VAR_key: azure-tf-backends.tfstate
+              TF_VAR_container_name: $(container-name)
+              TF_VAR_location: East US
