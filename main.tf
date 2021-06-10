@@ -25,4 +25,3 @@ module "backend" {
     name = "azure-tf-demo"
     location = "East US"
 }
-
