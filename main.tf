@@ -23,6 +23,7 @@ provider "azurerm" {
 module "backend" {
     for_each = toset( ["sbx", "prod"])
     source = "github.com/implodingduck/tfmodules//tfbackend"
-    name = "${each.key}-azure-tf-demo"
+    name = "azure-tf-demo"
     location = "East US"
+    env = each.key
 }
