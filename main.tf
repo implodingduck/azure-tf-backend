@@ -29,7 +29,7 @@ module "backend" {
 }
 
 
-module "backend" {
+module "be_logicappsqlcontest" {
     for_each = toset( ["sbx"])
     source = "github.com/implodingduck/tfmodules//tfbackend"
     name = "logicappsqlcontest"
