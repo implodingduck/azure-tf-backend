@@ -27,3 +27,12 @@ module "backend" {
     location = "East US"
     env = each.key
 }
+
+
+module "backend" {
+    for_each = toset( ["sbx"])
+    source = "github.com/implodingduck/tfmodules//tfbackend"
+    name = "logicappsqlcontest"
+    location = "East US"
+    env = each.key
+}
