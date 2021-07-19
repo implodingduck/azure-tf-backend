@@ -36,3 +36,11 @@ module "be_logicappsqlcontest" {
     location = "East US"
     env = each.key
 }
+
+module "be_apimlogicapps" {
+    for_each = toset( ["sbx"])
+    source = "github.com/implodingduck/tfmodules//tfbackend"
+    name = "apimlogicapps"
+    location = "East US"
+    env = each.key
+}
