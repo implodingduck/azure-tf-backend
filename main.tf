@@ -44,3 +44,11 @@ module "be_apimlogicapps" {
     location = "East US"
     env = each.key
 }
+
+module "be_implodinginsights" {
+    for_each = toset( ["sbx"])
+    source = "github.com/implodingduck/tfmodules//tfbackend"
+    name = "impinsights"
+    location = "East US"
+    env = each.key
+}
